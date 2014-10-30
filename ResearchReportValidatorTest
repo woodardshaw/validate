@@ -1,0 +1,2700 @@
+<?php
+class ResearchReportValidator extends ReportValidator {
+
+	/**
+	 * Overrides ReportValidator::validationRules().
+	 *
+	 * @see https://docs.mmis-inc.com/display/MVP/Validation+Rules+-+Federal+Research+Report
+	 */
+	public function validationRules($field) {
+		switch ($field) {
+			case 'APPLICABLE_MANUFACTURER_OR_APPLICABLE_GPO_NAME':
+				return array(
+					'required' => TRUE,
+					'regex' => '/^[a-zA-Z\&\ \#\@\_\,\.\'\-\d]{1,100}$/',
+					'message' => t('APPLICABLE_MANUFACTURER_OR_APPLICABLE_GPO_NAME is required and must be 100 valid characters or less.'),
+					'category' => t('Applicable Manufacturer'),
+				);
+			case 'APPLICABLE_MANUFACTURER_OR_APPLICABLE_GPO_ID':
+				return array(
+					'required' => TRUE,
+					'regex' => '/^[a-zA-Z\d]{1,38}$/',
+					'message' => t('APPLICABLE_MANUFACTURER_OR_APPLICABLE_GPO_ID must be 38 characters or less.'),
+					'category' => t('Applicable Manufacturer'),
+				);
+			case 'CONSOLIDATED_REPORT_INDICATOR':
+				return array(
+					'required' => TRUE,
+					'regex' => '/^(Y|N){1}$/',
+					'message' => t('CONSOLIDATED_REPORT_INDICATOR is required and must be "Y" or "N".'),
+					'category' => t('General/Formatting'),
+				);
+			case 'RESUBMISSION_FILE_INDICATOR':
+				return array(
+					'required' => TRUE,
+					'regex' => '/^(Y|N){1}$/',
+					'message' => t('RESUBMISSION_FILE_INDICATOR is required and must be "Y" or "N".'),
+					'category' => t('General/Formatting'),
+				);
+			case 'COVERED_RECIPIENT_TYPE':
+				return array(
+					'required' => TRUE,
+					'regex' => '/^(1|2|3|4){1}$/',
+					'message' => t('COVERED_RECIPIENT_TYPE is required and must be "1", "2", "3" or "4".'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'NON_COVERED_RECIPIENT_ENTITY_NAME':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateRecipientEntity'),
+					'args' => array('COVERED_RECIPIENT_TYPE' => 3),
+					'message' => t('NON_COVERED_RECIPIENT_ENTITY_NAME must be 100 characters or less.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'COVERED_RECIPIENT_TEACHING_HOSPITAL_NAME':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateTeachingHospitalName'),
+					'args' => array('COVERED_RECIPIENT_TYPE' => 2, 'COVERED_RECIPIENT_TEACHING_HOSPITAL_TAX_ID_NUMBER' => ''),
+					'message' => t('COVERED_RECIPIENT_TEACHING_HOSPITAL_NAME does not match the CMS 2013 Teaching Hospital List'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'COVERED_RECIPIENT_TEACHING_HOSPITAL_TAX_ID_NUMBER':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateTeachingHospitalTin'),
+					'args' => array('COVERED_RECIPIENT_TYPE' => 2),
+					'message' => t('COVERED_RECIPIENT_TEACHING_HOSPITAL_TAX_ID_NUMBER does not match the CMS 2013 Teaching Hospital List.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'COVERED_RECIPIENT_PHYSICIAN_NPI':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validatePhysicianNPI'),
+					'args' => array(),
+					'message' => t('COVERED_RECIPIENT_PHYSICIAN_NPI must validate against NPPES Database and must be a 10 digit number.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'COVERED_RECIPIENT_PHYSICIAN_FIRST_NAME':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validatePhysicianFirstName'),
+					'args' => array('COVERED_RECIPIENT_TYPE' => 1, 'COVERED_RECIPIENT_PHYSICIAN_NPI' => ''),
+					'message' => t('COVERED_RECIPIENT_PHYSICIAN_FIRST_NAME must match the NPPES Database Name and must be 20 characters or less'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'COVERED_RECIPIENT_PHYSICIAN_MIDDLE_NAME':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validatePhysicianMiddleName'),
+					'args' => array('COVERED_RECIPIENT_PHYSICIAN_NPI' => ''),
+					'message' => t('COVERED_RECIPIENT_PHYSICIAN_MIDDLE_NAME must match the NPPES Database Name and must be 20 characters or less'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'COVERED_RECIPIENT_PHYSICIAN_LAST_NAME':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validatePhysicianLastName'),
+					'args' => array('COVERED_RECIPIENT_TYPE' => 1, 'COVERED_RECIPIENT_PHYSICIAN_NPI' => ''),
+					'message' => t('COVERED_RECIPIENT_PHYSICIAN_LAST_NAME must match the NPPES Database Name and must be 35 characters or less'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'COVERED_RECIPIENT_PHYSICIAN_NAME_SUFFIX':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validatePhysicianSuffix'),
+					'args' => array('COVERED_RECIPIENT_PHYSICIAN_NPI' => ''),
+					'message' => t('COVERED_RECIPIENT_PHYSICIAN_NAME_SUFFIX must match the NPPES Database Name and must be 5 characters or less'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'RECIPIENT_BUSINESS_STREET_ADDRESS_LINE_1':
+				return array(
+					'required' => TRUE,
+					'callback' => array('ResearchReportValidator', 'validateRecipientBusinessLineOne'),
+					'args' => array('COVERED_RECIPIENT_TYPE' => 2, 'COVERED_RECIPIENT_TEACHING_HOSPITAL_TAX_ID_NUMBER' => ''),
+					'message' => t('RECIPIENT_BUSINESS_STREET_ADDRESS_LINE_1 is required and must match the CMS 2013 Teaching Hospital List and must be 55 valid characters or less'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'RECIPIENT_BUSINESS_STREET_ADDRESS_LINE_2':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateRecipientBusinessLineTwo'),
+					'args' => array('COVERED_RECIPIENT_TYPE' => 2, 'COVERED_RECIPIENT_TEACHING_HOSPITAL_TAX_ID_NUMBER' => ''),
+					'message' => t('RECIPIENT_BUSINESS_STREET_ADDRESS_LINE_2 must match the CMS 2013 Teaching Hospital List and must be 55 characters or less'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'RECIPIENT_CITY':
+				return array(
+					'required' => TRUE,
+					'callback' => array('ResearchReportValidator', 'validateRecipientCity'),
+					'args' => array('COVERED_RECIPIENT_TYPE' => 2, 'COVERED_RECIPIENT_TEACHING_HOSPITAL_TAX_ID_NUMBER' => ''),
+					'message' => t('RECIPIENT_CITY is required and must match the CMS 2013 Teaching Hospital List and must be 40 characters or less'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'RECIPIENT_STATE':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateRecipientState'),
+					'args' => array('RECIPIENT_COUNTRY' => array('US', 'United States'), 'COVERED_RECIPIENT_TYPE' => 2, 'COVERED_RECIPIENT_TEACHING_HOSPITAL_TAX_ID_NUMBER' => ''),
+					'message' => t('RECIPIENT_STATE must match the CMS 2013 Teaching Hospital List and must match the 2 digit abbreviation for state or territory'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'RECIPIENT_ZIP_CODE':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateRecipientZipCode'),
+					'args' => array('RECIPIENT_COUNTRY' => array('US', 'United States'), 'COVERED_RECIPIENT_TYPE' => 2, 'COVERED_RECIPIENT_TEACHING_HOSPITAL_TAX_ID_NUMBER' => ''),
+					'message' => t('RECIPIENT_ZIP_CODE must match the CMS 2013 Teaching Hospital List and must be 5 or 9 digits'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'RECIPIENT_COUNTRY':
+				return array(
+					'required' => TRUE,
+					'callback' => array('ResearchReportValidator', 'validateCountry'),
+					'args' => array(),
+					'message' => t('RECIPIENT_COUNTRY is required and must be a valid 2-digit country code.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'RECIPIENT_PROVINCE':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateRecipientProvince'),
+					'args' => array('RECIPIENT_COUNTRY' => array('US', 'United States')),
+					'message' => t('RECIPIENT_PROVINCE must be 20 characters or less.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'RECIPIENT_POSTAL_CODE':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateRecipientPostalCode'),
+					'args' => array('RECIPIENT_COUNTRY' => array('US', 'United States')),
+					'message' => t('RECIPIENT_POSTAL_CODE must be 20 alphanumeric characters or less.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'RECIPIENT_EMAIL_ADDRESS':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateRecipientEmail'),
+					'args' => array(),
+					'message' => t('RECIPIENT_EMAIL_ADDRESS must be in a valid email address format and must 100 characters or less.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'COVERED_RECIPIENT_PHYSICIAN_PRIMARY_TYPE':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validatePhysicianType'),
+					'args' => array('COVERED_RECIPIENT_TYPE' => 1),
+					'message' => t('COVERED_RECIPIENT_PHYSICIAN_PRIMARY_TYPE must be a number between 1 and 6.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'COVERED_RECIPIENT_PHYSICIAN_SPECIALTY':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validatePhysicianSpecialty'),
+					'args' => array('COVERED_RECIPIENT_TYPE' => 1, 'COVERED_RECIPIENT_PHYSICIAN_NPI' => ''),
+					'message' => t('COVERED_RECIPIENT_PHYSICIAN_SPECIALTY needs to match the CMS Specialty Taxonomy List.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'COVERED_RECIPIENT_PHYSICIAN_LICENSE_STATE_AND_LICENSE_NUMBER_1':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validatePhysicianLicenseNumber'),
+					'args' => array('COVERED_RECIPIENT_TYPE' => 1, 'COVERED_RECIPIENT_PHYSICIAN_NPI' => ''),
+					'message' => t('COVERED_RECIPIENT_PHYSICIAN_LICENSE_STATE_AND_LICENSE_NUMBER_1 must validate against NPPES Database and must include the 2 digit state abbreviation and match the format MA-12345'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'COVERED_RECIPIENT_PHYSICIAN_LICENSE_STATE_AND_LICENSE_NUMBER_2':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validatePhysicianLicenseNumberBlank'),
+					'args' => array('COVERED_RECIPIENT_PHYSICIAN_NPI' => ''),
+					'message' => t('COVERED_RECIPIENT_PHYSICIAN_LICENSE_STATE_AND_LICENSE_NUMBER_2 must validate against NPPES Database and must include the 2 digit state abbreviation and match the format MA-12345'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'COVERED_RECIPIENT_PHYSICIAN_LICENSE_STATE_AND_LICENSE_NUMBER_3':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validatePhysicianLicenseNumberBlank'),
+					'args' => array('COVERED_RECIPIENT_PHYSICIAN_NPI' => ''),
+					'message' => t('COVERED_RECIPIENT_PHYSICIAN_LICENSE_STATE_AND_LICENSE_NUMBER_3 must validate against NPPES Database and must include the 2 digit state abbreviation and match the format MA-12345'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'COVERED_RECIPIENT_PHYSICIAN_LICENSE_STATE_AND_LICENSE_NUMBER_4':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validatePhysicianLicenseNumberBlank'),
+					'args' => array('COVERED_RECIPIENT_PHYSICIAN_NPI' => ''),
+					'message' => t('COVERED_RECIPIENT_PHYSICIAN_LICENSE_STATE_AND_LICENSE_NUMBER_4 must validate against NPPES Database and must include the 2 digit state abbreviation and match the format MA-12345'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'COVERED_RECIPIENT_PHYSICIAN_LICENSE_STATE_AND_LICENSE_NUMBER_5':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validatePhysicianLicenseNumberBlank'),
+					'args' => array('COVERED_RECIPIENT_PHYSICIAN_NPI' => ''),
+					'message' => t('COVERED_RECIPIENT_PHYSICIAN_LICENSE_STATE_AND_LICENSE_NUMBER_5 must validate against NPPES Database and must include the 2 digit state abbreviation and match the format MA-12345'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRODUCT_INDICATOR':
+				return array(
+					'required' => TRUE,
+					'regex' => '/^(1|2|3|4){1}$/',
+					'message' => t('PRODUCT_INDICATOR is required and must be 1, 2, 3, or 4.'),
+					'category' => t('Product'),
+				);
+			case 'NAME_OF_ASSOCIATED_COVERED_DRUG_OR_BIOLOGICAL_1':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateCoveredDrugName'),
+					'args' => array('PRODUCT_INDICATOR' => array(1,4), 'NAME_OF_ASSOCIATED_COVERED_DEVICE_OR_MEDICAL_SUPPLY_1' => ''),
+					'message' => t('NAME_OF_ASSOCIATED_COVERED_DRUG_OR_BIOLOGICAL_1 must be 100 valid characters or less.'),
+					'category' => t('Product'),
+				);
+			case 'NAME_OF_ASSOCIATED_COVERED_DRUG_OR_BIOLOGICAL_2':
+				return array(
+					'required' => FALSE,
+					'regex' => '/^[a-zA-Z\&\ \#\@\_\,\.\'\-\d]{1,100}$/',
+					'message' => t('NAME_OF_ASSOCIATED_COVERED_DRUG_OR_BIOLOGICAL_2 must be 100 valid characters or less.'),
+					'category' => t('Product'),
+				);
+			case 'NAME_OF_ASSOCIATED_COVERED_DRUG_OR_BIOLOGICAL_3':
+				return array(
+					'required' => FALSE,
+					'regex' => '/^[a-zA-Z\&\ \#\@\_\,\.\'\-\d]{1,100}$/',
+					'message' => t('NAME_OF_ASSOCIATED_COVERED_DRUG_OR_BIOLOGICAL_3 must be 100 valid characters or less.'),
+					'category' => t('Product'),
+				);
+			case 'NAME_OF_ASSOCIATED_COVERED_DRUG_OR_BIOLOGICAL_4':
+				return array(
+					'required' => FALSE,
+					'regex' => '/^[a-zA-Z\&\ \#\@\_\,\.\'\-\d]{1,100}$/',
+					'message' => t('NAME_OF_ASSOCIATED_COVERED_DRUG_OR_BIOLOGICAL_4 must be 100 valid characters or less.'),
+					'category' => t('Product'),
+				);
+			case 'NAME_OF_ASSOCIATED_COVERED_DRUG_OR_BIOLOGICAL_5':
+				return array(
+					'required' => FALSE,
+					'regex' => '/^[a-zA-Z\&\ \#\@\_\,\.\'\-\d]{1,100}$/',
+					'message' => t('NAME_OF_ASSOCIATED_COVERED_DRUG_OR_BIOLOGICAL_5 must be 100 valid characters or less.'),
+					'category' => t('Product'),
+				);
+			case 'NDC_OF_ASSOCIATED_COVERED_DRUG_OR_BIOLOGICAL_1':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateCoveredDrugNdc'),
+					'args' => array('NAME_OF_ASSOCIATED_COVERED_DRUG_OR_BIOLOGICAL_1' => ''),
+					'message' => t('NDC_OF_ASSOCIATED_COVERED_DRUG_OR_BIOLOGICAL_1 must be 10 characters or less.'),
+					'category' => t('Product'),
+				);
+			case 'NDC_OF_ASSOCIATED_COVERED_DRUG_OR_BIOLOGICAL_2':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateCoveredDrugNdc'),
+					'args' => array('NAME_OF_ASSOCIATED_COVERED_DRUG_OR_BIOLOGICAL_2' => ''),
+					'message' => t('NDC_OF_ASSOCIATED_COVERED_DRUG_OR_BIOLOGICAL_2 must be 10 characters or less.'),
+					'category' => t('Product'),
+				);
+			case 'NDC_OF_ASSOCIATED_COVERED_DRUG_OR_BIOLOGICAL_3':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateCoveredDrugNdc'),
+					'args' => array('NAME_OF_ASSOCIATED_COVERED_DRUG_OR_BIOLOGICAL_3' => ''),
+					'message' => t('NDC_OF_ASSOCIATED_COVERED_DRUG_OR_BIOLOGICAL_3 must be 10 characters or less.'),
+					'category' => t('Product'),
+				);
+			case 'NDC_OF_ASSOCIATED_COVERED_DRUG_OR_BIOLOGICAL_4':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateCoveredDrugNdc'),
+					'args' => array('NAME_OF_ASSOCIATED_COVERED_DRUG_OR_BIOLOGICAL_4' => ''),
+					'message' => t('NDC_OF_ASSOCIATED_COVERED_DRUG_OR_BIOLOGICAL_4 must be 10 characters or less.'),
+					'category' => t('Product'),
+				);
+			case 'NDC_OF_ASSOCIATED_COVERED_DRUG_OR_BIOLOGICAL_5':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateCoveredDrugNdc'),
+					'args' => array('NAME_OF_ASSOCIATED_COVERED_DRUG_OR_BIOLOGICAL_5' => ''),
+					'message' => t('NDC_OF_ASSOCIATED_COVERED_DRUG_OR_BIOLOGICAL_5 must be 10 characters or less.'),
+					'category' => t('Product'),
+				);
+			case 'NAME_OF_ASSOCIATED_COVERED_DEVICE_OR_MEDICAL_SUPPLY_1':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateCoveredDrugName'),
+					'args' => array('PRODUCT_INDICATOR' => array(1,4), 'NAME_OF_ASSOCIATED_COVERED_DRUG_OR_BIOLOGICAL_1' => ''),
+					'message' => t('NAME_OF_ASSOCIATED_COVERED_DEVICE_OR_MEDICAL_SUPPLY_1 must be 100 valid characters or less.'),
+					'category' => t('Product'),
+				);
+			case 'NAME_OF_ASSOCIATED_COVERED_DEVICE_OR_MEDICAL_SUPPLY_2':
+				return array(
+					'required' => FALSE,
+					'regex' => '/^[a-zA-Z\&\ \#\@\_\,\.\'\-\d]{1,100}$/',
+					'message' => t('NAME_OF_ASSOCIATED_COVERED_DEVICE_OR_MEDICAL_SUPPLY_1 must be 100 valid characters or less.'),
+					'category' => t('Product'),
+				);
+			case 'NAME_OF_ASSOCIATED_COVERED_DEVICE_OR_MEDICAL_SUPPLY_3':
+				return array(
+					'required' => FALSE,
+					'regex' => '/^[a-zA-Z\&\ \#\@\_\,\.\'\-\d]{1,100}$/',
+					'message' => t('NAME_OF_ASSOCIATED_COVERED_DEVICE_OR_MEDICAL_SUPPLY_1 must be 100 valid characters or less.'),
+					'category' => t('Product'),
+				);
+			case 'NAME_OF_ASSOCIATED_COVERED_DEVICE_OR_MEDICAL_SUPPLY_4':
+				return array(
+					'required' => FALSE,
+					'regex' => '/^[a-zA-Z\&\ \#\@\_\,\.\'\-\d]{1,100}$/',
+					'message' => t('NAME_OF_ASSOCIATED_COVERED_DEVICE_OR_MEDICAL_SUPPLY_1 must be 100 valid characters or less.'),
+					'category' => t('Product'),
+				);
+			case 'NAME_OF_ASSOCIATED_COVERED_DEVICE_OR_MEDICAL_SUPPLY_5':
+				return array(
+					'required' => FALSE,
+					'regex' => '/^[a-zA-Z\&\ \#\@\_\,\.\'\-\d]{1,100}$/',
+					'message' => t('NAME_OF_ASSOCIATED_COVERED_DEVICE_OR_MEDICAL_SUPPLY_1 must be 100 valid characters or less.'),
+					'category' => t('Product'),
+				);
+			case 'APPLICABLE_MANUFACTURER_OR_APPLICABLE_GPO_MAKING_PAYMENT_NAME':
+				return array(
+					'required' => TRUE,
+					'regex' => '/^[a-zA-Z\&\ \#\@\_\,\.\'\-\d]{1,100}$/',
+					'message' => t('APPLICABLE_MANUFACTURER_OR_APPLICABLE_GPO_MAKING_PAYMENT_NAME is required and must be 100 valid characters or less.'),
+					'category' => t('Applicable Manufacturer'),
+				);
+			/*
+			case 'APPLICABLE_MANUFACTURER_OR_APPLICABLE_GPO_MAKING_PAYMENT_REGISTRATION_ID':
+				return array(
+					'required' => TRUE,
+					'regex' => '/^[a-zA-Z\d]{1,38}$/',
+					'message' => t('APPLICABLE_MANUFACTURER_OR_APPLICABLE_GPO_MAKING_PAYMENT_REGISTRATION_ID is required and must be 38 characters or less.'),
+					'category' => t('Applicable Manufacturer'),
+				);
+			*/
+			case 'HOME_SYSTEM_PAYMENT_ID':
+				return array(
+					'required' => FALSE,
+					'regex' => '/^[a-zA-Z\d]{1,50}$/',
+					'message' => t('HOME_SYSTEM_PAYMENT_ID must be 50 characters or less.'),
+					'category' => t('General/Formatting'),
+				);
+			case 'RESUBMITTED_PAYMENT_RECORD_ID':
+				return array(
+					'required' => FALSE,
+					'regex' => '/^[a-zA-Z\d]{1,38}$/',
+					'message' => t('RESUBMITTED_PAYMENT_RECORD_ID must be 38 characters or less.'),
+					'category' => t('General/Formatting'),
+				);
+			case 'TOTAL_AMOUNT_OF_RESEARCH_PAYMENT_U_S_DOLLARS':
+				return array(
+					'required' => TRUE,
+					'regex' => '/^\d{1,9}\.\d{2}$/',
+					'message' => t('TOTAL_AMOUNT_OF_RESEARCH_PAYMENT_U_S_DOLLARS is required and must be 12 characters or less of the format xxxxxxxxx.xx.'),
+					'category' => t('Spend Details'),
+				);
+			case 'DATE_OF_PAYMENT':
+				return array(
+					'required' => TRUE,
+					'callback' => array('ResearchReportValidator', 'validateDateOfPayment'),
+					'args' => array('YEAR' => 2013),
+					'message' => t('DATE_OF_PAYMENT is required and must be within the 2013 calendar year.'),
+					'category' => t('Spend Details'),
+				);
+			case 'FORM_OF_PAYMENT_OR_TRANSFER_OF_VALUE':
+				return array(
+					'required' => TRUE,
+					'regex' => '/^(1|2|3|4){1}$/',
+					'message' => t('FORM_OF_PAYMENT_OR_TRANSFER_OF_VALUE is required and must be 1, 2, 3, or 4.'),
+					'category' => t('Spend Details'),
+				);
+			case 'EXPENDITURE_CATEGORY':
+				return array(
+					'required' => FALSE,
+					'regex' => '/^(1|2|3|4|5|6){1}-0*([1-9][0-9]?|100)$/',
+					'message' => t('EXPENDITURE_CATEGORY must match X-XX or X-XXX where the first number is "1", "2", "3", "4", "5" or "6" and the 2nd number is numberic between 1-100'),
+					'category' => t('Spend Details'),
+				);
+			case 'PRE_CLINICAL_RESEARCH_INDICATOR':
+				return array(
+					'required' => TRUE,
+					'regex' => '/^(Y|N){1}$/',
+					'message' => t('PRE_CLINICAL_RESEARCH_INDICATOR is required and must be "Y" or "N".'),
+					'category' => t('Spend Details'),
+				);
+			case 'DELAY_IN_PUBLICATION_OF_RESEARCH_PAYMENT_INDICATOR':
+				return array(
+					'required' => TRUE,
+					'regex' => '/^(1|2|3){1}$/',
+					'message' => t('DELAY_IN_PUBLICATION_OF_RESEARCH_PAYMENT_INDICATOR is required and must be "1", "2", or "3".'),
+					'category' => t('Spend Details'),
+				);
+			case 'NAME_OF_STUDY':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateNameOfStudy'),
+					'args' => array('PRE_CLINICAL_RESEARCH_INDICATOR' => 'N'),
+					'message' => t('NAME_OF_STUDY must be 500 valid characters or less.'),
+					'category' => t('Spend Details'),
+				);
+			case 'CONTEXT_OF_RESEARCH':
+				return array(
+					'required' => FALSE,
+					'regex' => '/^([a-zA-Z\&\ \#\@\_\,\.\'\-\d]|\s){1,500}$/',
+					'message' => t('CONTEXT_OF_RESEARCH must be 500 valid characters or less.'),
+					'category' => t('Spend Details'),
+				);
+			case 'CLINICALTRIALS_GOV_IDENTIFIER':
+				return array(
+					'required' => FALSE,
+					'regex' => '/^([a-zA-Z]{3})([a-zA-Z\d]{8})$/',
+					'message' => t('CLINICALTRIALS_GOV_IDENTIFIER must be 11 alphanumeric characters with the first 3 alpha.'),
+					'category' => t('Spend Details'),
+				);
+			case 'RESEARCH_INFORMATION_LINK':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateUrl'),
+					'args' => array(),
+					'message' => t('RESEARCH_INFORMATION_LINK '),
+					'category' => t('Spend Details'),
+				);
+			case 'PRINCIPAL_INVESTIGATOR_COVERED_RECIPIENT_PHYSICIAN_INDICATOR':
+				return array(
+					'required' => TRUE,
+					'regex' => '/^(Y|N){1}$/',
+					'message' => t('PRINCIPAL_INVESTIGATOR_COVERED_RECIPIENT_PHYSICIAN_INDICATOR is required and must be "Y" or "N".'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL1_INVESTIGATOR_NPI':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorNPI'),
+					'args' => array('PRINCIPAL_INVESTIGATOR_COVERED_RECIPIENT_PHYSICIAN_INDICATOR' => 'Y'),
+					'message' => t('PRINCIPAL1_INVESTIGATOR_NPI must validate against NPPES Database and must be a 10 digit number.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL1_INVESTIGATOR_FIRST_NAME':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorFirstName'),
+					'args' => array('PRINCIPAL_INVESTIGATOR_COVERED_RECIPIENT_PHYSICIAN_INDICATOR' => 'Y', 'PRINCIPAL1_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL1_INVESTIGATOR_FIRST_NAME must match the NPPES Database Name and must be 20 valid characters or less'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL1_INVESTIGATOR_MIDDLE_NAME':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorMiddleName'),
+					'args' => array('PRINCIPAL1_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL1_INVESTIGATOR_MIDDLE_NAME must match the NPPES Database Name and must be 20 characters or less'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL1_INVESTIGATOR_LAST_NAME':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorLastName'),
+					'args' => array('PRINCIPAL_INVESTIGATOR_COVERED_RECIPIENT_PHYSICIAN_INDICATOR' => 'Y', 'PRINCIPAL1_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL1_INVESTIGATOR_LAST_NAME must match the NPPES Database Name and must be 35 valid characters or less'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL1_INVESTIGATOR_NAME_SUFFIX':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorSuffix'),
+					'args' => array('PRINCIPAL1_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL1_INVESTIGATOR_NAME_SUFFIX must be 5 characters or less'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL1_INVESTIGATOR_BUSINESS_STREET_ADDRESS_LINE_1':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorStreetAddress'),
+					'args' => array('PRINCIPAL_INVESTIGATOR_COVERED_RECIPIENT_PHYSICIAN_INDICATOR' => 'Y'),
+					'message' => t('PRINCIPAL1_INVESTIGATOR_BUSINESS_STREET_ADDRESS_LINE_1 must be 55 valid characters or less.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL1_INVESTIGATOR_BUSINESS_STREET_ADDRESS_LINE_2':
+				return array(
+					'required' => FALSE,
+					'regex' => '/^.{1,55}$/',
+					'message' => t('PRINCIPAL1_INVESTIGATOR_BUSINESS_STREET_ADDRESS_LINE_2 must be 55 characters or less.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL1_INVESTIGATOR_CITY':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorCity'),
+					'args' => array('PRINCIPAL_INVESTIGATOR_COVERED_RECIPIENT_PHYSICIAN_INDICATOR' => 'Y'),
+					'message' => t('PRINCIPAL1_INVESTIGATOR_CITY must be 40 characters or less.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL1_INVESTIGATOR_STATE':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorState'),
+					'args' => array('PRINCIPAL_INVESTIGATOR_COVERED_RECIPIENT_PHYSICIAN_INDICATOR' => 'Y', 'PRINCIPAL1_INVESTIGATOR_COUNTRY' => array('US', 'United States')),
+					'message' => t('PRINCIPAL1_INVESTIGATOR_STATE must match the 2 digit abbreviation for state or territory.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL1_INVESTIGATOR_ZIP_CODE':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorZipCode'),
+					'args' => array('PRINCIPAL_INVESTIGATOR_COVERED_RECIPIENT_PHYSICIAN_INDICATOR' => 'Y', 'PRINCIPAL1_INVESTIGATOR_COUNTRY' => array('US', 'United States')),
+					'message' => t('PRINCIPAL1_INVESTIGATOR_ZIP_CODE must be 5 or 9 digits.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL1_INVESTIGATOR_COUNTRY':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorCountry'),
+					'args' => array('PRINCIPAL_INVESTIGATOR_COVERED_RECIPIENT_PHYSICIAN_INDICATOR' => 'Y'),
+					'message' => t('PRINCIPAL1_INVESTIGATOR_COUNTRY must be a valid 2-digit country code.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL1_INVESTIGATOR_PROVINCE':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorProvince'),
+					'args' => array('PRINCIPAL_INVESTIGATOR_COVERED_RECIPIENT_PHYSICIAN_INDICATOR' => 'Y', 'PRINCIPAL1_INVESTIGATOR_COUNTRY' => array('US', 'United States')),
+					'message' => t('PRINCIPAL1_INVESTIGATOR_PROVINCE must be 20 characters or less.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL1_INVESTIGATOR_POSTAL_CODE':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorPostalCode'),
+					'args' => array('PRINCIPAL_INVESTIGATOR_COVERED_RECIPIENT_PHYSICIAN_INDICATOR' => 'Y', 'PRINCIPAL1_INVESTIGATOR_COUNTRY' => array('US', 'United States')),
+					'message' => t('PRINCIPAL1_INVESTIGATOR_POSTAL_CODE must be 20 alphanumeric characters or less.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL1_INVESTIGATOR_PHYSICIAN_PRIMARY_TYPE':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorType'),
+					'args' => array('PRINCIPAL_INVESTIGATOR_COVERED_RECIPIENT_PHYSICIAN_INDICATOR' => 'Y'),
+					'message' => t('PRINCIPAL1_INVESTIGATOR_PHYSICIAN_PRIMARY_TYPE must be "1", "2", "3", "4", "5", or "6".'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL1_INVESTIGATOR_SPECIALTY':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorSpecialty'),
+					'args' => array('PRINCIPAL_INVESTIGATOR_COVERED_RECIPIENT_PHYSICIAN_INDICATOR' => 'Y'),
+					'message' => t('PRINCIPAL1_INVESTIGATOR_SPECIALTY needs to match the CMS Specialty Taxonomy List.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL1_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_1':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validatePhysicianLicenseNumber'),
+					'args' => array('PRINCIPAL_INVESTIGATOR_COVERED_RECIPIENT_PHYSICIAN_INDICATOR' => 'Y', 'PRINCIPAL1_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL1_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_1 must validate against NPPES Database and must include the 2 digit state abbreviation and match the format MA-12345'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL1_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_2':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorLicenseNumberBlank'),
+					'args' => array('PRINCIPAL1_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL1_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_2 must validate against NPPES Database and must include the 2 digit state abbreviation and match the format MA-12345'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL1_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_3':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorLicenseNumberBlank'),
+					'args' => array('PRINCIPAL1_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL1_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_3 must validate against NPPES Database and must include the 2 digit state abbreviation and match the format MA-12345'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL1_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_4':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorLicenseNumberBlank'),
+					'args' => array('PRINCIPAL1_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL1_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_4 must validate against NPPES Database and must include the 2 digit state abbreviation and match the format MA-12345'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL1_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_5':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorLicenseNumberBlank'),
+					'args' => array('PRINCIPAL1_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL1_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_5 must validate against NPPES Database and must include the 2 digit state abbreviation and match the format MA-12345'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL2_INVESTIGATOR_NPI':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorNPIBlank'),
+					'args' => array('PRINCIPAL2_INVESTIGATOR_FIRST_NAME' => ''),
+					'message' => t('PRINCIPAL2_INVESTIGATOR_NPI must validate against NPPES Database and must be a 10 digit number.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL2_INVESTIGATOR_FIRST_NAME':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorFirstNameBlank'),
+					'args' => array('PRINCIPAL2_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL2_INVESTIGATOR_FIRST_NAME must match the NPPES Database Name and must be 20 valid characters or less'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL2_INVESTIGATOR_MIDDLE_NAME':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorMiddleName'),
+					'args' => array('PRINCIPAL2_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL2_INVESTIGATOR_MIDDLE_NAME must match the NPPES Database Name and must be 20 characters or less'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL2_INVESTIGATOR_LAST_NAME':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorLastNameBlank'),
+					'args' => array('PRINCIPAL2_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL2_INVESTIGATOR_LAST_NAME must match the NPPES Database Name and must be 35 valid characters or less'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL2_INVESTIGATOR_NAME_SUFFIX':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorSuffix'),
+					'args' => array('PRINCIPAL2_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL2_INVESTIGATOR_NAME_SUFFIX must match the NPPES Database Name and must be 5 characters or less'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL2_INVESTIGATOR_BUSINESS_STREET_ADDRESS_LINE_1':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorAddressBlank'),
+					'args' => array('PRINCIPAL2_INVESTIGATOR_FIRST_NAME' => ''),
+					'message' => t('PRINCIPAL2_INVESTIGATOR_BUSINESS_STREET_ADDRESS_LINE_1 must be 55 characters or less.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL2_INVESTIGATOR_BUSINESS_STREET_ADDRESS_LINE_2':
+				return array(
+					'required' => FALSE,
+					'regex' => '/^.{1,55}$/',
+					'message' => t('PRINCIPAL2_INVESTIGATOR_BUSINESS_STREET_ADDRESS_LINE_2 must be 55 characters or less.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL2_INVESTIGATOR_CITY':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorCityBlank'),
+					'args' => array('PRINCIPAL2_INVESTIGATOR_FIRST_NAME' => ''),
+					'message' => t('PRINCIPAL2_INVESTIGATOR_CITY must be 40 characters or less.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL2_INVESTIGATOR_STATE':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorStateBlank'),
+					'args' => array('PRINCIPAL2_INVESTIGATOR_FIRST_NAME' => '', 'RECIPIENT_COUNTRY' => array('US', 'United States')),
+					'message' => t('PRINCIPAL2_INVESTIGATOR_STATE must match the 2 digit abbreviation for state or territory.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL2_INVESTIGATOR_ZIP_CODE':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorZipCodeBlank'),
+					'args' => array('PRINCIPAL2_INVESTIGATOR_FIRST_NAME' => '', 'RECIPIENT_COUNTRY' => array('US', 'United States')),
+					'message' => t('PRINCIPAL2_INVESTIGATOR_ZIP_CODE must be 5 or 9 digits.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL2_INVESTIGATOR_COUNTRY':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorCountryBlank'),
+					'args' => array('PRINCIPAL2_INVESTIGATOR_FIRST_NAME' => ''),
+					'message' => t('PRINCIPAL2_INVESTIGATOR_COUNTRY must be a valid 2-digit country code.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL2_INVESTIGATOR_PROVINCE':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorProvinceBlank'),
+					'args' => array('PRINCIPAL2_INVESTIGATOR_FIRST_NAME' => '', 'RECIPIENT_COUNTRY' => array('US', 'United States')),
+					'message' => t('PRINCIPAL2_INVESTIGATOR_PROVINCE must be 20 characters or less.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL2_INVESTIGATOR_POSTAL_CODE':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorPostalCodeBlank'),
+					'args' => array('PRINCIPAL2_INVESTIGATOR_FIRST_NAME' => '', 'RECIPIENT_COUNTRY' => array('US', 'United States')),
+					'message' => t('PRINCIPAL2_INVESTIGATOR_POSTAL_CODE must be 20 alphanumeric characters or less.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL2_INVESTIGATOR_PHYSICIAN_PRIMARY_TYPE':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorTypeBlank'),
+					'args' => array('PRINCIPAL2_INVESTIGATOR_FIRST_NAME' => ''),
+					'message' => t('PRINCIPAL2_INVESTIGATOR_PHYSICIAN_PRIMARY_TYPE must be "1", "2", "3", "4", "5", or "6".'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL2_INVESTIGATOR_SPECIALTY':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorSpecialtyBlank'),
+					'args' => array('PRINCIPAL2_INVESTIGATOR_FIRST_NAME' => ''),
+					'message' => t('PRINCIPAL2_INVESTIGATOR_SPECIALTY needs to match the CMS Specialty Taxonomy List.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL2_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_1':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorLicenseNumberBlank'),
+					'args' => array('PRINCIPAL2_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL2_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_1 must validate against NPPES Database and must include the 2 digit state abbreviation and match the format MA-12345'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL2_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_2':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorLicenseNumberBlank'),
+					'args' => array('PRINCIPAL2_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL2_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_2 must validate against NPPES Database and must include the 2 digit state abbreviation and match the format MA-12345'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL2_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_3':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorLicenseNumberBlank'),
+					'args' => array('PRINCIPAL2_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL2_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_3 must validate against NPPES Database and must include the 2 digit state abbreviation and match the format MA-12345'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL2_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_4':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorLicenseNumberBlank'),
+					'args' => array('PRINCIPAL2_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL2_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_4 must validate against NPPES Database and must include the 2 digit state abbreviation and match the format MA-12345'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL2_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_5':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorLicenseNumberBlank'),
+					'args' => array('PRINCIPAL2_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL2_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_5 must validate against NPPES Database and must include the 2 digit state abbreviation and match the format MA-12345'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL3_INVESTIGATOR_NPI':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorNPIBlank'),
+					'args' => array('PRINCIPAL3_INVESTIGATOR_FIRST_NAME' => ''),
+					'message' => t('PRINCIPAL3_INVESTIGATOR_NPI must validate against NPPES Database and must be a 10 digit number.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL3_INVESTIGATOR_FIRST_NAME':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorFirstNameBlank'),
+					'args' => array('PRINCIPAL3_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL3_INVESTIGATOR_FIRST_NAME must match the NPPES Database Name and must be 20 valid characters or less'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL3_INVESTIGATOR_MIDDLE_NAME':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorMiddleName'),
+					'args' => array('PRINCIPAL3_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL3_INVESTIGATOR_MIDDLE_NAME must match the NPPES Database Name and must be 20 characters or less'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL3_INVESTIGATOR_LAST_NAME':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorLastNameBlank'),
+					'args' => array('PRINCIPAL3_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL3_INVESTIGATOR_LAST_NAME must match the NPPES Database Name and must be 35 valid characters or less'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL3_INVESTIGATOR_NAME_SUFFIX':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorSuffix'),
+					'args' => array('PRINCIPAL3_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL3_INVESTIGATOR_NAME_SUFFIX must match the NPPES Database Name and must be 5 characters or less'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL3_INVESTIGATOR_BUSINESS_STREET_ADDRESS_LINE_1':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorAddressBlank'),
+					'args' => array('PRINCIPAL3_INVESTIGATOR_FIRST_NAME' => ''),
+					'message' => t('PRINCIPAL3_INVESTIGATOR_BUSINESS_STREET_ADDRESS_LINE_1 must be 55 valid characters or less.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL3_INVESTIGATOR_BUSINESS_STREET_ADDRESS_LINE_2':
+				return array(
+					'required' => FALSE,
+					'regex' => '/^.{1,55}$/',
+					'message' => t('PRINCIPAL3_INVESTIGATOR_BUSINESS_STREET_ADDRESS_LINE_2 must be 55 characters or less.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL3_INVESTIGATOR_CITY':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorCityBlank'),
+					'args' => array('PRINCIPAL3_INVESTIGATOR_FIRST_NAME' => ''),
+					'message' => t('PRINCIPAL3_INVESTIGATOR_CITY must be 40 characters or less.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL3_INVESTIGATOR_STATE':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorStateBlank'),
+					'args' => array('PRINCIPAL3_INVESTIGATOR_FIRST_NAME' => '', 'RECIPIENT_COUNTRY' => array('US', 'United States')),
+					'message' => t('PRINCIPAL3_INVESTIGATOR_STATE must match the 2 digit abbreviation for state or territory.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL3_INVESTIGATOR_ZIP_CODE':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorZipCodeBlank'),
+					'args' => array('PRINCIPAL3_INVESTIGATOR_FIRST_NAME' => '', 'RECIPIENT_COUNTRY' => array('US', 'United States')),
+					'message' => t('PRINCIPAL3_INVESTIGATOR_ZIP_CODE must be 5 or 9 digits.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL3_INVESTIGATOR_COUNTRY':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorCountryBlank'),
+					'args' => array('PRINCIPAL3_INVESTIGATOR_FIRST_NAME' => ''),
+					'message' => t('PRINCIPAL3_INVESTIGATOR_COUNTRY must be a valid 2-digit country code.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL3_INVESTIGATOR_PROVINCE':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorProvinceBlank'),
+					'args' => array('PRINCIPAL3_INVESTIGATOR_FIRST_NAME' => '', 'RECIPIENT_COUNTRY' => array('US', 'United States')),
+					'message' => t('PRINCIPAL3_INVESTIGATOR_PROVINCE must be 20 characters or less.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL3_INVESTIGATOR_POSTAL_CODE':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorPostalCodeBlank'),
+					'args' => array('PRINCIPAL3_INVESTIGATOR_FIRST_NAME' => '', 'RECIPIENT_COUNTRY' => array('US', 'United States')),
+					'message' => t('PRINCIPAL3_INVESTIGATOR_POSTAL_CODE must be 20 alphanumeric characters or less.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL3_INVESTIGATOR_PHYSICIAN_PRIMARY_TYPE':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorTypeBlank'),
+					'args' => array('PRINCIPAL3_INVESTIGATOR_FIRST_NAME' => ''),
+					'message' => t('PRINCIPAL3_INVESTIGATOR_PHYSICIAN_PRIMARY_TYPE must be "1", "2", "3", "4", "5", or "6".'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL3_INVESTIGATOR_SPECIALTY':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorSpecialtyBlank'),
+					'args' => array('PRINCIPAL3_INVESTIGATOR_FIRST_NAME' => ''),
+					'message' => t('PRINCIPAL3_INVESTIGATOR_SPECIALTY needs to match the CMS Specialty Taxonomy List.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL3_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_1':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorLicenseNumberBlank'),
+					'args' => array('PRINCIPAL3_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL3_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_1 must validate against NPPES Database and must include the 2 digit state abbreviation and match the format MA-12345'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL3_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_2':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorLicenseNumberBlank'),
+					'args' => array('PRINCIPAL3_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL3_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_2 must validate against NPPES Database and must include the 2 digit state abbreviation and match the format MA-12345'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL3_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_3':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorLicenseNumberBlank'),
+					'args' => array('PRINCIPAL3_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL3_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_3 must validate against NPPES Database and must include the 2 digit state abbreviation and match the format MA-12345'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL3_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_4':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorLicenseNumberBlank'),
+					'args' => array('PRINCIPAL3_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL3_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_4 must validate against NPPES Database and must include the 2 digit state abbreviation and match the format MA-12345'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL3_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_5':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorLicenseNumberBlank'),
+					'args' => array('PRINCIPAL3_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL3_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_5 must validate against NPPES Database and must include the 2 digit state abbreviation and match the format MA-12345'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL4_INVESTIGATOR_NPI':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorNPIBlank'),
+					'args' => array('PRINCIPAL4_INVESTIGATOR_FIRST_NAME' => ''),
+					'message' => t('PRINCIPAL4_INVESTIGATOR_NPI must validate against NPPES Database and must be a 10 digit number.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL4_INVESTIGATOR_FIRST_NAME':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorFirstNameBlank'),
+					'args' => array('PRINCIPAL4_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL4_INVESTIGATOR_FIRST_NAME must match the NPPES Database Name and must be 20 valid characters or less'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL4_INVESTIGATOR_MIDDLE_NAME':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorMiddleName'),
+					'args' => array('PRINCIPAL4_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL4_INVESTIGATOR_MIDDLE_NAME must match the NPPES Database Name and must be 20 characters or less'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL4_INVESTIGATOR_LAST_NAME':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorLastNameBlank'),
+					'args' => array('PRINCIPAL4_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL4_INVESTIGATOR_LAST_NAME must match the NPPES Database Name and must be 35 valid characters or less'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL4_INVESTIGATOR_NAME_SUFFIX':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorSuffix'),
+					'args' => array('PRINCIPAL4_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL4_INVESTIGATOR_NAME_SUFFIX must match the NPPES Database Name and must be 5 characters or less'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL4_INVESTIGATOR_BUSINESS_STREET_ADDRESS_LINE_1':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorAddressBlank'),
+					'args' => array('PRINCIPAL4_INVESTIGATOR_FIRST_NAME' => ''),
+					'message' => t('PRINCIPAL4_INVESTIGATOR_BUSINESS_STREET_ADDRESS_LINE_1 must be 55 valid characters or less.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL4_INVESTIGATOR_BUSINESS_STREET_ADDRESS_LINE_2':
+				return array(
+					'required' => FALSE,
+					'regex' => '/^.{1,55}$/',
+					'message' => t('PRINCIPAL4_INVESTIGATOR_BUSINESS_STREET_ADDRESS_LINE_2 must be 55 characters or less.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL4_INVESTIGATOR_CITY':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorCityBlank'),
+					'args' => array('PRINCIPAL4_INVESTIGATOR_FIRST_NAME' => ''),
+					'message' => t('PRINCIPAL4_INVESTIGATOR_CITY must be 40 characters or less.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL4_INVESTIGATOR_STATE':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorStateBlank'),
+					'args' => array('PRINCIPAL4_INVESTIGATOR_FIRST_NAME' => '', 'RECIPIENT_COUNTRY' => array('US', 'United States')),
+					'message' => t('PRINCIPAL4_INVESTIGATOR_STATE must match the 2 digit abbreviation for state or territory.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL4_INVESTIGATOR_ZIP_CODE':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorZipCodeBlank'),
+					'args' => array('PRINCIPAL4_INVESTIGATOR_FIRST_NAME' => '', 'RECIPIENT_COUNTRY' => array('US', 'United States')),
+					'message' => t('PRINCIPAL4_INVESTIGATOR_ZIP_CODE must be 5 or 9 digits.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL4_INVESTIGATOR_COUNTRY':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorCountryBlank'),
+					'args' => array('PRINCIPAL4_INVESTIGATOR_FIRST_NAME' => ''),
+					'message' => t('PRINCIPAL4_INVESTIGATOR_COUNTRY must be a valid 2-digit country code.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL4_INVESTIGATOR_PROVINCE':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorProvinceBlank'),
+					'args' => array('PRINCIPAL4_INVESTIGATOR_FIRST_NAME' => '', 'RECIPIENT_COUNTRY' => array('US', 'United States')),
+					'message' => t('PRINCIPAL4_INVESTIGATOR_PROVINCE must be 20 characters or less.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL4_INVESTIGATOR_POSTAL_CODE':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorPostalCodeBlank'),
+					'args' => array('PRINCIPAL4_INVESTIGATOR_FIRST_NAME' => '', 'RECIPIENT_COUNTRY' => array('US', 'United States')),
+					'message' => t('PRINCIPAL4_INVESTIGATOR_POSTAL_CODE must be 20 alphanumeric characters or less.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL4_INVESTIGATOR_PHYSICIAN_PRIMARY_TYPE':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorTypeBlank'),
+					'args' => array('PRINCIPAL4_INVESTIGATOR_FIRST_NAME' => ''),
+					'message' => t('PRINCIPAL4_INVESTIGATOR_PHYSICIAN_PRIMARY_TYPE must be "1", "2", "3", "4", "5", or "6".'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL4_INVESTIGATOR_SPECIALTY':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorSpecialtyBlank'),
+					'args' => array('PRINCIPAL4_INVESTIGATOR_FIRST_NAME' => ''),
+					'message' => t('PRINCIPAL4_INVESTIGATOR_SPECIALTY needs to match the CMS Specialty Taxonomy List.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL4_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_1':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorLicenseNumberBlank'),
+					'args' => array('PRINCIPAL4_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL4_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_1 must validate against NPPES Database and must include the 2 digit state abbreviation and match the format MA-12345'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL4_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_2':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorLicenseNumberBlank'),
+					'args' => array('PRINCIPAL4_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL4_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_2 must validate against NPPES Database and must include the 2 digit state abbreviation and match the format MA-12345'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL4_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_3':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorLicenseNumberBlank'),
+					'args' => array('PRINCIPAL4_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL4_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_3 must validate against NPPES Database and must include the 2 digit state abbreviation and match the format MA-12345'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL4_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_4':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorLicenseNumberBlank'),
+					'args' => array('PRINCIPAL4_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL4_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_4 must validate against NPPES Database and must include the 2 digit state abbreviation and match the format MA-12345'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL4_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_5':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorLicenseNumberBlank'),
+					'args' => array('PRINCIPAL4_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL4_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_5 must validate against NPPES Database and must include the 2 digit state abbreviation and match the format MA-12345'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL5_INVESTIGATOR_NPI':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorNPIBlank'),
+					'args' => array('PRINCIPAL5_INVESTIGATOR_FIRST_NAME' => ''),
+					'message' => t('PRINCIPAL5_INVESTIGATOR_NPI must validate against NPPES Database and must be a 10 digit number.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL5_INVESTIGATOR_FIRST_NAME':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorFirstNameBlank'),
+					'args' => array('PRINCIPAL5_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL5_INVESTIGATOR_FIRST_NAME must match the NPPES Database Name and must be 20 valid characters or less'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL5_INVESTIGATOR_MIDDLE_NAME':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorMiddleName'),
+					'args' => array('PRINCIPAL5_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL5_INVESTIGATOR_MIDDLE_NAME must match the NPPES Database Name and must be 20 characters or less'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL5_INVESTIGATOR_LAST_NAME':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorLastNameBlank'),
+					'args' => array('PRINCIPAL5_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL5_INVESTIGATOR_LAST_NAME must match the NPPES Database Name and must be 35 valid characters or less'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL5_INVESTIGATOR_NAME_SUFFIX':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorSuffix'),
+					'args' => array('PRINCIPAL5_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL5_INVESTIGATOR_NAME_SUFFIX must match the NPPES Database Name and must be 5 characters or less'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL5_INVESTIGATOR_BUSINESS_STREET_ADDRESS_LINE_1':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorAddressBlank'),
+					'args' => array('PRINCIPAL5_INVESTIGATOR_FIRST_NAME' => ''),
+					'message' => t('PRINCIPAL5_INVESTIGATOR_BUSINESS_STREET_ADDRESS_LINE_1 must be 55 valid characters or less.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL5_INVESTIGATOR_BUSINESS_STREET_ADDRESS_LINE_2':
+				return array(
+					'required' => FALSE,
+					'regex' => '/^.{1,55}$/',
+					'message' => t('PRINCIPAL5_INVESTIGATOR_BUSINESS_STREET_ADDRESS_LINE_2 must be 55 characters or less.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL5_INVESTIGATOR_CITY':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorCityBlank'),
+					'args' => array('PRINCIPAL5_INVESTIGATOR_FIRST_NAME' => ''),
+					'message' => t('PRINCIPAL5_INVESTIGATOR_CITY must be 40 characters or less.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL5_INVESTIGATOR_STATE':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorStateBlank'),
+					'args' => array('PRINCIPAL5_INVESTIGATOR_FIRST_NAME' => '', 'RECIPIENT_COUNTRY' => array('US', 'United States')),
+					'message' => t('PRINCIPAL5_INVESTIGATOR_STATE must match the 2 digit abbreviation for state or territory.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL5_INVESTIGATOR_ZIP_CODE':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorZipCodeBlank'),
+					'args' => array('PRINCIPAL5_INVESTIGATOR_FIRST_NAME' => '', 'RECIPIENT_COUNTRY' => array('US', 'United States')),
+					'message' => t('PRINCIPAL5_INVESTIGATOR_ZIP_CODE must be 5 or 9 digits.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL5_INVESTIGATOR_COUNTRY':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorCountryBlank'),
+					'args' => array('PRINCIPAL5_INVESTIGATOR_FIRST_NAME' => ''),
+					'message' => t('PRINCIPAL5_INVESTIGATOR_COUNTRY must be a valid 2-digit country code.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL5_INVESTIGATOR_PROVINCE':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorProvinceBlank'),
+					'args' => array('PRINCIPAL5_INVESTIGATOR_FIRST_NAME' => '', 'RECIPIENT_COUNTRY' => array('US', 'United States')),
+					'message' => t('PRINCIPAL5_INVESTIGATOR_PROVINCE must be 20 characters or less.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL5_INVESTIGATOR_POSTAL_CODE':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorPostalCodeBlank'),
+					'args' => array('PRINCIPAL5_INVESTIGATOR_FIRST_NAME' => '', 'RECIPIENT_COUNTRY' => array('US', 'United States')),
+					'message' => t('PRINCIPAL5_INVESTIGATOR_POSTAL_CODE must be 20 alphanumeric characters or less.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL5_INVESTIGATOR_PHYSICIAN_PRIMARY_TYPE':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorTypeBlank'),
+					'args' => array('PRINCIPAL5_INVESTIGATOR_FIRST_NAME' => ''),
+					'message' => t('PRINCIPAL5_INVESTIGATOR_PHYSICIAN_PRIMARY_TYPE must be "1", "2", "3", "4", "5", or "6".'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL5_INVESTIGATOR_SPECIALTY':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorSpecialtyBlank'),
+					'args' => array('PRINCIPAL5_INVESTIGATOR_FIRST_NAME' => ''),
+					'message' => t('PRINCIPAL5_INVESTIGATOR_SPECIALTY needs to match the CMS Specialty Taxonomy List.'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL5_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_1':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorLicenseNumberBlank'),
+					'args' => array('PRINCIPAL5_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL5_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_1 must validate against NPPES Database and must include the 2 digit state abbreviation and match the format MA-12345'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL5_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_2':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorLicenseNumberBlank'),
+					'args' => array('PRINCIPAL5_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL5_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_2 must validate against NPPES Database and must include the 2 digit state abbreviation and match the format MA-12345'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL5_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_3':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorLicenseNumberBlank'),
+					'args' => array('PRINCIPAL5_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL5_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_3 must validate against NPPES Database and must include the 2 digit state abbreviation and match the format MA-12345'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL5_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_4':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorLicenseNumberBlank'),
+					'args' => array('PRINCIPAL5_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL5_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_4 must validate against NPPES Database and must include the 2 digit state abbreviation and match the format MA-12345'),
+					'category' => t('Covered Recipient'),
+				);
+			case 'PRINCIPAL5_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_5':
+				return array(
+					'required' => FALSE,
+					'callback' => array('ResearchReportValidator', 'validateInvestigatorLicenseNumberBlank'),
+					'args' => array('PRINCIPAL5_INVESTIGATOR_NPI' => ''),
+					'message' => t('PRINCIPAL5_INVESTIGATOR_LICENSE_STATE_AND_LICENSE_NUMBER_5 must validate against NPPES Database and must include the 2 digit state abbreviation and match the format MA-12345'),
+					'category' => t('Covered Recipient'),
+				);
+		}
+	}
+	
+	static public function validateRecipientEntity($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^[a-zA-Z\&\ \#\@\_\,\.\'\-\d]{1,100}$/';
+
+		$keys = array_keys($args);
+
+		if ($record[$keys[0]] == $args[$keys[0]] && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		}
+
+		return $valid;
+	}
+	static public function validateTeachingHospitalName($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^.{1,100}$/';
+
+		$keys = array_keys($args);
+
+		$check_value = "";
+		$check_test = "";
+		$check_return = "";
+
+		if (isset($th_data) && isset($th_data['COVERED_RECIPIENT_TEACHING_HOSPITAL_TAX_ID_NUMBER']) && isset($th_data['COVERED_RECIPIENT_TEACHING_HOSPITAL_TAX_ID_NUMBER'][$record[$keys[1]]])) {
+			$check_value = str_replace("AMPERSAND", "", str_replace("&", "", strtoupper($record[$field])));
+			$check_test = str_replace("AMPERSAND", "", str_replace("&", "", strtoupper($th_data['COVERED_RECIPIENT_TEACHING_HOSPITAL_TAX_ID_NUMBER'][$record[$keys[1]]]['name'])));
+			$check_return = str_replace("ampersand", "&", $th_data['COVERED_RECIPIENT_TEACHING_HOSPITAL_TAX_ID_NUMBER'][$record[$keys[1]]]['name']);
+		}
+
+		if ($record[$keys[0]] == $args[$keys[0]] && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field])) {
+			$valid = FALSE;
+			if ($check_value == $check_test) {
+				$valid = TRUE;
+			}
+		}
+		
+		if (!$valid) {
+			if ($check_return != "") {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ", it should be '" . $check_return . "'.";
+			} else {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ".";
+			}
+		}
+
+		return $valid;
+	}
+	static public function validateTeachingHospitalTin($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^\d{9}$/';
+
+		$keys = array_keys($args);
+
+		if ($record[$keys[0]] == $args[$keys[0]] && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field])) {
+			$valid = FALSE;
+			if (isset($th_data) && isset($th_data['COVERED_RECIPIENT_TEACHING_HOSPITAL_TAX_ID_NUMBER']) && isset($th_data['COVERED_RECIPIENT_TEACHING_HOSPITAL_TAX_ID_NUMBER'][$record[$field]])) {
+				if ($record[$field] == $th_data['COVERED_RECIPIENT_TEACHING_HOSPITAL_TAX_ID_NUMBER'][$record[$field]]['TIN']) {
+					$valid = TRUE;
+				}
+			}
+		}
+
+		return $valid;
+	}
+	static public function validatePhysicianFirstName($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^[a-zA-Z\&\ \,\.\'\-\d]{1,20}$/';
+
+		$keys = array_keys($args);
+
+		$check_value = "";
+
+		if (isset($nppes_data) && isset($nppes_data['COVERED_RECIPIENT_PHYSICIAN_NPI']) && isset($nppes_data['COVERED_RECIPIENT_PHYSICIAN_NPI'][$record[$keys[1]]])) {
+			if (is_array($nppes_data['COVERED_RECIPIENT_PHYSICIAN_NPI'][$record[$keys[1]]]['fname'])) {
+				$check_value = implode(" ",$nppes_data['COVERED_RECIPIENT_PHYSICIAN_NPI'][$record[$keys[1]]]['fname']);
+			} else {
+				$check_value = $nppes_data['COVERED_RECIPIENT_PHYSICIAN_NPI'][$record[$keys[1]]]['fname'];
+			}
+		}
+
+		if (($record[$keys[0]] == $args[$keys[0]]) && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		} else if ($record[$keys[1]] != $args[$keys[1]]) {
+			$valid = FALSE;
+
+			if (strtoupper($record[$field]) == strtoupper($check_value)) {
+				$valid = TRUE;
+			}
+		}
+
+		if (!$valid) {
+			if ($check_value != "") {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ", it should be '" . $check_value . "'.";
+			} else {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ".";
+			}
+		}
+
+		return $valid;
+	}
+	static public function validatePhysicianMiddleName($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^.{1,20}$/';
+
+		$keys = array_keys($args);
+
+		$check_value = "";
+
+		if (isset($nppes_data) && isset($nppes_data['COVERED_RECIPIENT_PHYSICIAN_NPI']) && isset($nppes_data['COVERED_RECIPIENT_PHYSICIAN_NPI'][$record[$keys[0]]])) {
+			if (is_array($nppes_data['COVERED_RECIPIENT_PHYSICIAN_NPI'][$record[$keys[0]]]['mname'])) {
+				$check_value = implode(" ",$nppes_data['COVERED_RECIPIENT_PHYSICIAN_NPI'][$record[$keys[0]]]['mname']);
+			} else {
+				$check_value = $nppes_data['COVERED_RECIPIENT_PHYSICIAN_NPI'][$record[$keys[0]]]['mname'];
+			}
+		}
+
+		if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		} else if ($record[$keys[0]] != $args[$keys[0]]) {
+			$valid = FALSE;
+
+			if (str_replace(".","",strtoupper($record[$field])) == str_replace(".","",strtoupper($check_value))) {
+				$valid = TRUE;
+			} else if (substr(str_replace(".","",strtoupper($record[$field])),0,1) == substr(str_replace(".","",strtoupper($check_value)),0,1)) {
+				$valid = TRUE;
+			}
+		}
+
+		if (!$valid) {
+			if ($check_value != "") {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ", it should be '" . $check_value . "'.";
+			} else {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ".";
+			}
+		}
+
+		return $valid;
+	}
+	static public function validatePhysicianLastName($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^[a-zA-Z\&\ \,\.\'\-\d]{1,35}$/';
+
+		$keys = array_keys($args);
+
+		$check_value = "";
+
+		if (isset($nppes_data) && isset($nppes_data['COVERED_RECIPIENT_PHYSICIAN_NPI']) && isset($nppes_data['COVERED_RECIPIENT_PHYSICIAN_NPI'][$record[$keys[1]]])) {
+			if (is_array($nppes_data['COVERED_RECIPIENT_PHYSICIAN_NPI'][$record[$keys[1]]]['lname'])) {
+				$check_value = implode(" ",$nppes_data['COVERED_RECIPIENT_PHYSICIAN_NPI'][$record[$keys[1]]]['lname']);
+			} else {
+				$check_value = $nppes_data['COVERED_RECIPIENT_PHYSICIAN_NPI'][$record[$keys[1]]]['lname'];
+			}
+		}
+
+		if ($record[$keys[0]] == $args[$keys[0]] && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		} else if ($record[$keys[1]] != $args[$keys[1]]) {
+			$valid = FALSE;
+
+			if (strtoupper($record[$field]) == strtoupper($check_value)) {
+				$valid = TRUE;
+			}
+		}
+
+		if (!$valid) {
+			if ($check_value != "") {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ", it should be '" . $check_value . "'.";
+			} else {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ".";
+			}
+		}
+
+		return $valid;
+	}
+	static public function validatePhysicianSuffix($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^.{1,5}$/';
+
+		$keys = array_keys($args);
+
+		$check_value = "";
+
+		if (isset($nppes_data) && isset($nppes_data['COVERED_RECIPIENT_PHYSICIAN_NPI']) && isset($nppes_data['COVERED_RECIPIENT_PHYSICIAN_NPI'][$record[$keys[0]]])) {
+			if (is_array($nppes_data['COVERED_RECIPIENT_PHYSICIAN_NPI'][$record[$keys[0]]]['suffix'])) {
+				$check_value = implode(" ",$nppes_data['COVERED_RECIPIENT_PHYSICIAN_NPI'][$record[$keys[0]]]['suffix']);
+			} else {
+				$check_value = $nppes_data['COVERED_RECIPIENT_PHYSICIAN_NPI'][$record[$keys[0]]]['suffix'];
+			}
+		}
+
+		if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		} else if ($record[$keys[0]] != $args[$keys[0]]) {
+			$valid = FALSE;
+
+			if (str_replace(".","",strtoupper($record[$field])) == str_replace(".","",strtoupper($check_value))) {
+				$valid = TRUE;
+			}
+		}
+
+		if (!$valid) {
+			if ($check_value != "") {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ", it should be '" . $check_value . "'.";
+			} else {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ".";
+			}
+		}
+
+		return $valid;
+	}
+
+	static public function validateRecipientBusinessLineOne($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^[a-zA-Z\&\ \#\@\_\,\.\'\-\d]{1,55}$/';
+
+		$keys = array_keys($args);
+
+		$check_value = "";
+		$check_test = "";
+		$check_return = "";
+
+		if (isset($th_data) && isset($th_data['COVERED_RECIPIENT_TEACHING_HOSPITAL_TAX_ID_NUMBER']) && isset($th_data['COVERED_RECIPIENT_TEACHING_HOSPITAL_TAX_ID_NUMBER'][$record[$keys[1]]])) {
+			$check_value = strtoupper($record[$field]);
+			$check_test = strtoupper($th_data['COVERED_RECIPIENT_TEACHING_HOSPITAL_TAX_ID_NUMBER'][$record[$keys[1]]]['address1']);
+			$check_return = $th_data['COVERED_RECIPIENT_TEACHING_HOSPITAL_TAX_ID_NUMBER'][$record[$keys[1]]]['address1'];
+		}
+
+		if ($record[$keys[0]] == $args[$keys[0]] && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		} else if ($record[$keys[0]] == $args[$keys[0]] && !empty($record[$field])) {
+			$valid = FALSE;
+
+			if ($check_value == $check_test) {
+				$valid = TRUE;
+			}
+		}
+
+		if (!$valid) {
+			if ($check_return != "") {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ", it should be '" . $check_return . "'.";
+			} else {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ".";
+			}
+		}
+
+		return $valid;
+	}
+
+	static public function validateRecipientBusinessLineTwo($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^.{1,55}$/';
+
+		$keys = array_keys($args);
+
+		$check_value = "";
+		$check_test = "";
+		$check_return = "";
+
+		if (isset($th_data) && isset($th_data['COVERED_RECIPIENT_TEACHING_HOSPITAL_TAX_ID_NUMBER']) && isset($th_data['COVERED_RECIPIENT_TEACHING_HOSPITAL_TAX_ID_NUMBER'][$record[$keys[1]]])) {
+			$check_value = strtoupper($record[$field]);
+			$check_test = strtoupper($th_data['COVERED_RECIPIENT_TEACHING_HOSPITAL_TAX_ID_NUMBER'][$record[$keys[1]]]['address2']);
+			$check_return = $th_data['COVERED_RECIPIENT_TEACHING_HOSPITAL_TAX_ID_NUMBER'][$record[$keys[1]]]['address2'];
+		}
+
+		if ($record[$keys[0]] == $args[$keys[0]] && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		} else if ($record[$keys[0]] == $args[$keys[0]] && !empty($record[$field])) {
+			$valid = FALSE;
+
+			if ($check_value == $check_test) {
+				$valid = TRUE;
+			}
+		}
+
+		if (!$valid) {
+			if ($check_return != "") {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ", it should be '" . $check_return . "'.";
+			} else {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ".";
+			}
+		}
+
+		return $valid;
+	}
+
+	static public function validateRecipientCity($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^.{1,40}$/';
+
+		$keys = array_keys($args);
+
+		$check_value = "";
+		$check_test = "";
+		$check_return = "";
+
+		if (isset($th_data) && isset($th_data['COVERED_RECIPIENT_TEACHING_HOSPITAL_TAX_ID_NUMBER']) && isset($th_data['COVERED_RECIPIENT_TEACHING_HOSPITAL_TAX_ID_NUMBER'][$record[$keys[1]]])) {
+			$check_value = strtoupper($record[$field]);
+			$check_test = strtoupper($th_data['COVERED_RECIPIENT_TEACHING_HOSPITAL_TAX_ID_NUMBER'][$record[$keys[1]]]['city']);
+			$check_return = $th_data['COVERED_RECIPIENT_TEACHING_HOSPITAL_TAX_ID_NUMBER'][$record[$keys[1]]]['city'];
+		}
+
+		if ($record[$keys[0]] == $args[$keys[0]] && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		} else if ($record[$keys[1]] != "" && !empty($record[$field])) {
+			$valid = FALSE;
+
+			if ($check_value == $check_test) {
+				$valid = TRUE;
+			}
+		}
+
+		if (!$valid) {
+			if ($check_return != "") {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ", it should be '" . $check_return . "'.";
+			} else {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ".";
+			}
+		}
+
+		return $valid;
+	}
+
+	static public function validateRecipientState($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^[a-zA-Z]{2}$/';
+
+		$keys = array_keys($args);
+
+		$check_value = "";
+		$check_test = "";
+		$check_return = "";
+
+		if (isset($th_data) && isset($th_data['COVERED_RECIPIENT_TEACHING_HOSPITAL_TAX_ID_NUMBER']) && isset($th_data['COVERED_RECIPIENT_TEACHING_HOSPITAL_TAX_ID_NUMBER'][$record[$keys[2]]])) {
+			$check_value = strtoupper($record[$field]);
+			$check_test = strtoupper($th_data['COVERED_RECIPIENT_TEACHING_HOSPITAL_TAX_ID_NUMBER'][$record[$keys[2]]]['state']);
+			$check_return = $th_data['COVERED_RECIPIENT_TEACHING_HOSPITAL_TAX_ID_NUMBER'][$record[$keys[2]]]['state'];
+		}
+
+		if (in_array($record[$keys[0]], $args[$keys[0]]) && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field])) {
+			$valid = ReportValidator::validateStateList($record[$field]);
+			if (!$valid) {
+				if ($record[$keys[1]] == $args[$keys[1]] && $record[$keys[2]] != "") {
+					$valid = FALSE;
+
+					if ($check_value == $check_test) {
+						$valid = TRUE;
+					}
+				}
+			}
+		}
+
+		if (!$valid) {
+			if ($check_return != "") {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ", it should be '" . $check_return . "'.";
+			} else {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ".";
+			}
+		}
+
+		return $valid;
+	}
+
+	static public function validateCountry($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		if (!empty($record[$field])) {
+			$valid = ReportValidator::validateCountryList($record[$field]);
+		}
+
+		return $valid;
+	}
+
+	static public function validateRecipientZipCode($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^(\d{5}(\d{4})?)?$/';
+
+		$keys = array_keys($args);
+
+		$check_value = "";
+		$check_test = "";
+		$check_return = "";
+
+		if (isset($th_data) && isset($th_data['COVERED_RECIPIENT_TEACHING_HOSPITAL_TAX_ID_NUMBER']) && isset($th_data['COVERED_RECIPIENT_TEACHING_HOSPITAL_TAX_ID_NUMBER'][$record[$keys[2]]])) {
+			$check_value = strtoupper($record[$field]);
+			$check_test = strtoupper($th_data['COVERED_RECIPIENT_TEACHING_HOSPITAL_TAX_ID_NUMBER'][$record[$keys[2]]]['zipcode']);
+			$check_return = $th_data['COVERED_RECIPIENT_TEACHING_HOSPITAL_TAX_ID_NUMBER'][$record[$keys[2]]]['zipcode'];
+		}
+
+		if (in_array($record[$keys[0]], $args[$keys[0]]) && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field])) {
+			if ($record[$keys[1]] == $args[$keys[1]] && $record[$keys[2]] != "") {
+				$valid = FALSE;
+
+				if ($check_value == $check_test) {
+					$valid = TRUE;
+				}
+			}
+		}
+
+		if (!$valid) {
+			if ($check_return != "") {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ", it should be '" . $check_return . "'.";
+			} else {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ".";
+			}
+		}
+
+		return $valid;
+	}
+	static public function validateRecipientProvince($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^.{1,20}$/';
+
+		$keys = array_keys($args);
+
+		if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		}
+
+		return $valid;
+	}
+	static public function validateRecipientPostalCode($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^[a-zA-Z\d]{1,20}$/';
+
+		$keys = array_keys($args);
+
+		if (!in_array($record[$keys[0]], $args[$keys[0]]) && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		}
+
+		return $valid;
+	}
+	static public function validateRecipientEmail($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^.{1,100}$/';
+
+		if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !filter_var($record[$field], FILTER_VALIDATE_EMAIL)) {
+			$valid = FALSE;
+		}
+
+		return $valid;
+	}
+	static public function validatePhysicianNPI($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^\d{10}$/';
+
+		if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field])) {
+			$valid = FALSE;
+			if (isset($nppes_data) && isset($nppes_data['COVERED_RECIPIENT_PHYSICIAN_NPI']) && isset($nppes_data['COVERED_RECIPIENT_PHYSICIAN_NPI'][$record[$field]])) {
+				$npi_str = "NPI";
+				if (DIA_TESTING) {
+					$npi_str = "npi";
+				}
+				if (strtoupper($record[$field]) == strtoupper($nppes_data['COVERED_RECIPIENT_PHYSICIAN_NPI'][$record[$field]][$npi_str])) {
+					$valid = TRUE;
+				}
+			}
+		}
+
+		return $valid;
+	}
+	static public function validatePhysicianType($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^(1|2|3|4|5|6){1}$/';
+
+		$keys = array_keys($args);
+
+		if ($record[$keys[0]] == $args[$keys[0]] && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		}
+
+		return $valid;
+	}
+	static public function validatePhysicianSpecialty($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^[a-zA-Z\d]{10}$/';
+
+		$keys = array_keys($args);
+
+		if ($record[$keys[0]] == $args[$keys[0]] && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field])) {
+			$valid = ReportValidator::specialtyList($record[$field]);
+		}
+
+		return $valid;
+	}
+	static public function validatePhysicianLicenseNumber($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^[a-zA-Z]{2}-[a-zA-Z \-\.\d]{1,17}$/';
+
+		$keys = array_keys($args);
+
+		$check_array = array();
+
+		if (isset($nppes_data) && isset($nppes_data[$keys[1]]) && isset($nppes_data[$keys[1]][$record[$keys[1]]])) {
+			if (isset($nppes_data[$keys[1]][$record[$keys[1]]]['provider_licenses'])) {
+				foreach ($nppes_data[$keys[1]][$record[$keys[1]]]['provider_licenses'] as $provider_licenses) {
+					if (is_array($provider_licenses) && isset($provider_licenses['id'])) {
+						$check_array[] = strtoupper($provider_licenses['state_code']."-".$provider_licenses['number']);
+					} else {
+						foreach($provider_licenses as $provider_license) {
+							$check_array[] = strtoupper($provider_license['state_code']."-".$provider_license['number']);
+						}
+					}
+				}
+			}
+		}
+
+		if ($record[$keys[0]] == $args[$keys[0]] && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field])) {
+			$state_abbr = substr($record[$field],0,2);
+			$valid = ReportValidator::validateStateList($state_abbr);
+			
+			if ($record[$keys[1]] != $args[$keys[1]]) {
+				$valid = FALSE;
+
+				if (in_array(strtoupper($record[$field]), $check_array)) {
+					$valid = TRUE;
+				}
+			}
+		}
+
+		if (!$valid) {
+			if (count($check_array) > 0) {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ", it should be '" . implode(', ', $check_array) . "'.";
+			} else {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ".";
+			}
+		}
+
+		return $valid;
+	}
+	static public function validatePhysicianLicenseNumberBlank($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^[a-zA-Z]{2}-[a-zA-Z \-\.\d]{1,17}$/';
+
+		$keys = array_keys($args);
+
+		$check_array = array();
+
+		if (isset($nppes_data) && isset($nppes_data[$keys[0]]) && isset($nppes_data[$keys[0]][$record[$keys[0]]])) {
+			if (isset($nppes_data[$keys[0]][$record[$keys[0]]]['provider_licenses'])) {
+				foreach ($nppes_data[$keys[0]][$record[$keys[0]]]['provider_licenses'] as $provider_licenses) {
+					if (is_array($provider_licenses) && isset($provider_licenses['id'])) {
+						$check_array[] = strtoupper($provider_licenses['state_code']."-".$provider_licenses['number']);
+					} else {
+						foreach($provider_licenses as $provider_license) {
+							$check_array[] = strtoupper($provider_license['state_code']."-".$provider_license['number']);
+						}
+					}
+				}
+			}
+		}
+
+		if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field])) {
+			$state_abbr = substr($record[$field],0,2);
+			$valid = ReportValidator::validateStateList($state_abbr);
+
+			if ($record[$keys[0]] != $args[$keys[0]]) {
+				$valid = FALSE;
+
+				if (in_array(strtoupper($record[$field]), $check_array)) {
+					$valid = TRUE;
+				}
+			}
+		}
+
+		if (!$valid) {
+			if (count($check_array) > 0) {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ", it should be '" . implode(', ', $check_array) . "'.";
+			} else {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ".";
+			}
+		}
+
+		return $valid;
+	}
+	static public function validateCoveredDrugName($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^[a-zA-Z\&\ \#\@\_\,\.\'\-\d]{1,100}$/';
+
+		$keys = array_keys($args);
+
+		if ((in_array($record[$keys[0]], $args[$keys[0]]) && $record[$keys[1]] == $args[$keys[1]]) && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		}
+
+		return $valid;
+	}
+	static public function validateCoveredDrugNdc($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = "";
+
+		if (strpos($record[$field], "-") !== false) {
+			$regex = '/^[a-zA-Z\d-]{1,12}$/';
+		} else {
+			$regex = '/^[a-zA-Z\d]{1,10}$/';
+		}
+
+		$keys = array_keys($args);
+
+		if ($record[$keys[0]] != $args[$keys[0]] && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		}
+
+		return $valid;
+	}
+	static public function validateDateOfPayment($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^[\d]{8}$/';
+
+		$keys = array_keys($args);
+
+		if (empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		} else if (substr($record[$field],0,4) != $args[$keys[0]]) {
+			$valid = FALSE;
+		}
+
+		return $valid;
+	}
+	static public function validateNameOfStudy($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^([a-zA-Z\&\ \,\.\'\-\d]|\s){1,500}$/';
+
+		$keys = array_keys($args);
+
+		if ($record[$keys[0]] == $args[$keys[0]] && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		}
+
+		return $valid;
+	}
+	static public function validateUrl($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex_length = '/^.{1,2083}$/';
+
+		$keys = array_keys($args);
+
+		if (!empty($record[$field]) && !preg_match($regex_length, $record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !filter_var($record[$field], FILTER_VALIDATE_URL)) {
+			$valid = FALSE;
+		}
+
+		return $valid;
+	}
+	static public function validateInvestigatorFirstName($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^[a-zA-Z\&\ \,\.\'\-\d]{1,20}$/';
+
+		$keys = array_keys($args);
+
+		$check_value = "";
+
+		if (isset($nppes_data) && isset($nppes_data[$keys[1]]) && isset($nppes_data[$keys[1]][$record[$keys[1]]])) {
+			if (is_array($nppes_data[$keys[1]][$record[$keys[1]]]['fname'])) {
+				$check_value = implode(" ",$nppes_data[$keys[1]][$record[$keys[1]]]['fname']);
+			} else {
+				$check_value = $nppes_data[$keys[1]][$record[$keys[1]]]['fname'];
+			}
+		}
+
+		if ($record[$keys[0]] == $args[$keys[0]] && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		} else if ($record[$keys[1]] != $args[$keys[1]]) {
+			$valid = FALSE;
+			
+			if (strtoupper($record[$field]) == strtoupper($check_value)) {
+				$valid = TRUE;
+			}
+		}
+
+		if (!$valid) {
+			if ($check_value != "") {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ", it should be '" . $check_value . "'.";
+			} else {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ".";
+			}
+		}
+
+		return $valid;
+	}
+	static public function validateInvestigatorFirstNameBlank($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^[a-zA-Z\&\ \,\.\'\-\d]{1,20}$/';
+
+		$keys = array_keys($args);
+
+		$check_value = "";
+
+		if (isset($nppes_data) && isset($nppes_data[$keys[0]]) && isset($nppes_data[$keys[0]][$record[$keys[0]]])) {
+			if (is_array($nppes_data[$keys[0]][$record[$keys[0]]]['fname'])) {
+				$check_value = implode(" ",$nppes_data[$keys[0]][$record[$keys[0]]]['fname']);
+			} else {
+				$check_value = $nppes_data[$keys[0]][$record[$keys[0]]]['fname'];
+			}
+		}
+
+		if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		} else if ($record[$keys[0]] != $args[$keys[0]]) {
+			$valid = FALSE;
+
+			if (strtoupper($record[$field]) == strtoupper($check_value)) {
+				$valid = TRUE;
+			}
+		}
+
+		if (!$valid) {
+			if ($check_value != "") {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ", it should be '" . $check_value . "'.";
+			} else {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ".";
+			}
+		}
+
+		return $valid;
+	}
+	static public function validateInvestigatorMiddleName($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^.{1,20}$/';
+
+		$keys = array_keys($args);
+
+		$check_value = "";
+
+		if (isset($nppes_data) && isset($nppes_data[$keys[0]]) && isset($nppes_data[$keys[0]][$record[$keys[0]]])) {
+			if (is_array($nppes_data[$keys[0]][$record[$keys[0]]]['mname'])) {
+				$check_value = implode(" ",$nppes_data[$keys[0]][$record[$keys[0]]]['mname']);
+			} else {
+				$check_value = $nppes_data[$keys[0]][$record[$keys[0]]]['mname'];
+			}
+		}
+
+		if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		} else if ($record[$keys[0]] != $args[$keys[0]]) {
+			$valid = FALSE;
+
+			if (strtoupper($record[$field]) == strtoupper($check_value)) {
+				$valid = TRUE;
+			}
+		}
+
+		if (!$valid) {
+			if ($check_value != "") {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ", it should be '" . $check_value . "'.";
+			} else {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ".";
+			}
+		}
+
+		return $valid;
+	}
+	static public function validateInvestigatorLastName($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^[a-zA-Z\&\ \,\.\'\-\d]{1,35}$/';
+
+		$keys = array_keys($args);
+
+		$check_value = "";
+
+		if (isset($nppes_data) && isset($nppes_data[$keys[1]]) && isset($nppes_data[$keys[1]][$record[$keys[1]]])) {
+			if (is_array($nppes_data[$keys[1]][$record[$keys[1]]]['lname'])) {
+				$check_value = implode(" ",$nppes_data[$keys[1]][$record[$keys[1]]]['lname']);
+			} else {
+				$check_value = $nppes_data[$keys[1]][$record[$keys[1]]]['lname'];
+			}
+		}
+
+		if ($record[$keys[0]] == $args[$keys[0]] && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		} else if ($record[$keys[1]] != $args[$keys[1]]) {
+			$valid = FALSE;
+
+			if (strtoupper($record[$field]) == strtoupper($check_value)) {
+				$valid = TRUE;
+			}
+		}
+
+		if (!$valid) {
+			if ($check_value != "") {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ", it should be '" . $check_value . "'.";
+			} else {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ".";
+			}
+		}
+
+		return $valid;
+	}
+	static public function validateInvestigatorLastNameBlank($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^[a-zA-Z\&\ \,\.\'\-\d]{1,35}$/';
+
+		$keys = array_keys($args);
+		
+		$check_value = "";
+
+		if (isset($nppes_data) && isset($nppes_data[$keys[0]]) && isset($nppes_data[$keys[0]][$record[$keys[0]]])) {
+			if (is_array($nppes_data[$keys[0]][$record[$keys[0]]]['lname'])) {
+				$check_value = implode(" ",$nppes_data[$keys[0]][$record[$keys[0]]]['lname']);
+			} else {
+				$check_value = $nppes_data[$keys[0]][$record[$keys[0]]]['lname'];
+			}
+		}
+
+		if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		} else if ($record[$keys[0]] != $args[$keys[0]]) {
+			$valid = FALSE;
+
+			if (strtoupper($record[$field]) == strtoupper($check_value)) {
+				$valid = TRUE;
+			}
+		}
+
+		if (!$valid) {
+			if ($check_value != "") {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ", it should be '" . $check_value . "'.";
+			} else {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ".";
+			}
+		}
+
+		return $valid;
+	}
+	static public function validateInvestigatorSuffix($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^.{1,5}$/';
+
+		$keys = array_keys($args);
+		
+		$check_value = "";
+
+		if (isset($nppes_data) && isset($nppes_data[$keys[0]]) && isset($nppes_data[$keys[0]][$record[$keys[0]]])) {
+			if (is_array($nppes_data[$keys[0]][$record[$keys[0]]]['suffix'])) {
+				$check_value = implode(" ",$nppes_data[$keys[0]][$record[$keys[0]]]['suffix']);
+			} else {
+				$check_value = $nppes_data[$keys[0]][$record[$keys[0]]]['suffix'];
+			}
+		}
+
+		if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		} else if ($record[$keys[0]] != $args[$keys[0]]) {
+			$valid = FALSE;
+
+			if (strtoupper($record[$field]) == strtoupper($check_value)) {
+				$valid = TRUE;
+			}
+		}
+
+		if (!$valid) {
+			if ($check_value != "") {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ", it should be '" . $check_value . "'.";
+			} else {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ".";
+			}
+		}
+
+		return $valid;
+	}
+	static public function validateInvestigatorStreetAddress($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^[a-zA-Z\&\ \#\@\_\,\.\'\-\d]{1,55}$/';
+
+		$keys = array_keys($args);
+
+		if ($record[$keys[0]] == $args[$keys[0]] && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		}
+
+		return $valid;
+	}
+	static public function validateInvestigatorCity($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^.{1,40}$/';
+
+		$keys = array_keys($args);
+
+		if ($record[$keys[0]] == $args[$keys[0]] && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		}
+
+		return $valid;
+	}
+	static public function validateInvestigatorState($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^[a-zA-Z]{2}$/';
+
+		$keys = array_keys($args);
+
+		if ($record[$keys[0]] == $args[$keys[0]] && in_array($record[$keys[1]], $args[$keys[1]]) && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field])) {
+			$valid = ReportValidator::validateStateList($record[$field]);
+		}
+
+		return $valid;
+	}
+	static public function validateInvestigatorZipCode($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^(\d{5}(\d{4})?)?$/';
+
+		$keys = array_keys($args);
+
+		if ($record[$keys[0]] == $args[$keys[0]] && in_array($record[$keys[1]], $args[$keys[1]]) && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		}
+
+		return $valid;
+	}
+	static public function validateInvestigatorCountry($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^.{1,40}$/';
+
+		$keys = array_keys($args);
+
+		if ($record[$keys[0]] == $args[$keys[0]] && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field])) {
+			$valid = ReportValidator::validateCountryList($record[$field]);
+		}
+
+		return $valid;
+	}
+	static public function validateInvestigatorProvince($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^.{1,20}$/';
+
+		$keys = array_keys($args);
+
+		if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		}
+
+		return $valid;
+	}
+	static public function validateInvestigatorPostalCode($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^[a-zA-Z\d]{1,20}$/';
+
+		$keys = array_keys($args);
+
+		if ($record[$keys[0]] == $args[$keys[0]] && !in_array($record[$keys[1]], $args[$keys[1]]) && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		}
+
+		return $valid;
+	}
+	static public function validateInvestigatorType($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^(1|2|3|4|5|6){1}$/';
+
+		$keys = array_keys($args);
+
+		if ($record[$keys[0]] == $args[$keys[0]] && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		}
+
+		return $valid;
+	}
+	static public function validateInvestigatorNPI($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^\d{10}$/';
+
+		$keys = array_keys($args);
+
+		if ($record[$keys[0]] == $args[$keys[0]] && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field])) {
+			$valid = FALSE;
+
+			if (isset($nppes_data) && isset($nppes_data[$field]) && isset($nppes_data[$field][$record[$field]])) {
+				$npi_str = "NPI";
+				if (DIA_TESTING) {
+					$npi_str = "npi";
+				}
+				if (strtoupper($record[$field]) == strtoupper($nppes_data[$field][$record[$field]][$npi_str])) {
+					$valid = TRUE;
+				}
+			}
+		}
+
+		return $valid;
+	}
+	static public function validateInvestigatorSpecialty($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^[a-zA-Z\d]{10}$/';
+
+		$keys = array_keys($args);
+
+		if ($record[$keys[0]] == $args[$keys[0]] && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field])) {
+			$valid = ReportValidator::specialtyList($record[$field]);
+		}
+
+		return $valid;
+	}
+	static public function validateInvestigatorLicenseNumber($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^[a-zA-Z]{2}-[a-zA-Z \-\.\d]{1,17}$/';
+
+		$keys = array_keys($args);
+
+		if ($record[$keys[0]] != $args[$keys[0]] && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field])) {
+			$state_abbr = substr($record[$field],0,2);
+			$valid = ReportValidator::validateStateList($state_abbr);
+		}
+
+		return $valid;
+	}
+	static public function validateInvestigatorName($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^[a-zA-Z\&\ \,\.\'\-\d]{1,35}$/';
+
+		$keys = array_keys($args);
+
+		if ($record[$keys[0]] != $args[$keys[0]] && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		}
+
+		return $valid;
+	}
+	static public function validateInvestigatorAddressBlank($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^.{1,55}$/';
+
+		$keys = array_keys($args);
+
+		if ($record[$keys[0]] != $args[$keys[0]] && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		}
+
+		return $valid;
+	}
+	static public function validateInvestigatorCityBlank($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^.{1,40}$/';
+
+		$keys = array_keys($args);
+
+		if ($record[$keys[0]] != $args[$keys[0]] && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		}
+
+		return $valid;
+	}
+	static public function validateInvestigatorStateBlank($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^[a-zA-Z]{2}$/';
+
+		$keys = array_keys($args);
+
+		if ($record[$keys[0]] != $args[$keys[0]] && in_array($record[$keys[1]], $args[$keys[1]]) && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		}
+
+		return $valid;
+	}
+	static public function validateInvestigatorZipCodeBlank($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^(\d{5}(\d{4})?)?$/';
+
+		$keys = array_keys($args);
+
+		if ($record[$keys[0]] != $args[$keys[0]] && in_array($record[$keys[1]], $args[$keys[1]]) && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		}
+
+		return $valid;
+	}
+	static public function validateInvestigatorCountryBlank($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^.{1,40}$/';
+
+		$keys = array_keys($args);
+
+		if ($record[$keys[0]] != $args[$keys[0]] && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field])) {
+			$valid = ReportValidator::validateCountryList($record[$field]);
+		}
+
+		return $valid;
+	}
+	static public function validateInvestigatorProvinceBlank($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^.{1,20}$/';
+
+		$keys = array_keys($args);
+
+		if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		}
+
+		return $valid;
+	}
+	static public function validateInvestigatorPostalCodeBlank($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^.{1,20}$/';
+
+		$keys = array_keys($args);
+
+		if ($record[$keys[0]] != $args[$keys[0]] && !in_array($record[$keys[1]], $args[$keys[1]]) && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		}
+
+		return $valid;
+	}
+	static public function validateInvestigatorTypeBlank($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^(1|2|3|4|5|6){1}$/';
+
+		$keys = array_keys($args);
+
+		if ($record[$keys[0]] != $args[$keys[0]] && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		}
+
+		return $valid;
+	}
+	static public function validateInvestigatorNPIBlank($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^\d{10}$/';
+
+		$keys = array_keys($args);
+
+		if ($record[$keys[0]] != $args[$keys[0]] && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field])) {
+			$valid = FALSE;
+
+			if (isset($nppes_data) && isset($nppes_data[$field]) && isset($nppes_data[$field][$record[$field]])) {
+				$npi_str = "NPI";
+				if (DIA_TESTING) {
+					$npi_str = "npi";
+				}
+				if (strtoupper($record[$field]) == strtoupper($nppes_data[$field][$record[$field]][$npi_str])) {
+					$valid = TRUE;
+				}
+			}
+		}
+
+		return $valid;
+	}
+	static public function validateInvestigatorSpecialtyBlank($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^[a-zA-Z\d]{10}$/';
+
+		$keys = array_keys($args);
+
+		if ($record[$keys[0]] != $args[$keys[0]] && empty($record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field])) {
+			$valid = ReportValidator::specialtyList($record[$field]);
+		}
+
+		return $valid;
+	}
+	static public function validateInvestigatorLicenseNumberBlank($args, $record, $field, $nppes_data, $th_data) {
+		$valid = TRUE;
+
+		$regex = '/^[a-zA-Z]{2}-[a-zA-Z \-\.\d]{1,17}$/';
+
+		$keys = array_keys($args);
+
+		$check_array = array();
+
+		if (isset($nppes_data) && isset($nppes_data[$keys[0]]) && isset($nppes_data[$keys[0]][$record[$keys[0]]])) {
+			if (isset($nppes_data[$keys[0]][$record[$keys[0]]]['provider_licenses'])) {
+				foreach ($nppes_data[$keys[0]][$record[$keys[0]]]['provider_licenses'] as $provider_licenses) {
+					if (is_array($provider_licenses) && isset($provider_licenses['id'])) {
+						$check_array[] = strtoupper($provider_licenses['state_code']."-".$provider_licenses['number']);
+					} else {
+						foreach($provider_licenses as $provider_license) {
+							$check_array[] = strtoupper($provider_license['state_code']."-".$provider_license['number']);
+						}
+					}
+				}
+			}
+		}
+
+		if (!empty($record[$field]) && !preg_match($regex, $record[$field])) {
+			$valid = FALSE;
+		} else if (!empty($record[$field])) {
+			$state_abbr = substr($record[$field],0,2);
+			$valid = ReportValidator::validateStateList($state_abbr);
+
+			if ($record[$keys[0]] != $args[$keys[0]]) {
+				$valid = FALSE;
+					
+				if (in_array(strtoupper($record[$field]), $check_array)) {
+					$valid = TRUE;
+				}
+			}
+		}
+
+		if (!$valid) {
+			if (count($check_array) > 0) {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ", it should be '" . implode(', ', $check_array) . "'.";
+			} else {
+				$valid = array();
+				$valid['valid'] = FALSE;
+				$valid['dynamic_error'] = ".";
+			}
+		}
+
+		return $valid;
+	}
+}
